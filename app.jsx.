@@ -1,0 +1,243 @@
+const { useState, useRef } = React;
+
+const LANGUAGES = [
+  { code: "en", name: "English", voice: "en-US" },
+  { code: "es", name: "Español", voice: "es-ES" },
+  { code: "fr", name: "Français", voice: "fr-FR" },
+  { code: "de", name: "Deutsch", voice: "de-DE" },
+  { code: "it", name: "Italiano", voice: "it-IT" },
+  { code: "pt", name: "Português", voice: "pt-BR" },
+  { code: "ru", name: "Русский", voice: "ru-RU" },
+  { code: "zh", name: "中文", voice: "zh-CN" },
+  { code: "ja", name: "日本語", voice: "ja-JP" },
+  { code: "ko", name: "한국어", voice: "ko-KR" },
+  { code: "ar", name: "العربية", voice: "ar-SA" },
+  { code: "hi", name: "हिन्दी", voice: "hi-IN" },
+  { code: "tr", name: "Türkçe", voice: "tr-TR" },
+  { code: "pl", name: "Polski", voice: "pl-PL" },
+  { code: "nl", name: "Nederlands", voice: "nl-NL" },
+  { code: "sv", name: "Svenska", voice: "sv-SE" },
+  { code: "da", name: "Dansk", voice: "da-DK" },
+  { code: "fi", name: "Suomi", voice: "fi-FI" },
+  { code: "nb", name: "Norsk", voice: "nb-NO" },
+  { code: "vi", name: "Tiếng Việt", voice: "vi-VN" },
+  { code: "th", name: "ภาษาไทย", voice: "th-TH" },
+  { code: "id", name: "Bahasa Indonesia", voice: "id-ID" },
+  { code: "ms", name: "Bahasa Melayu", voice: "ms-MY" },
+  { code: "uk", name: "Українська", voice: "uk-UA" },
+  { code: "cs", name: "Čeština", voice: "cs-CZ" },
+  { code: "ro", name: "Română", voice: "ro-RO" },
+  { code: "hu", name: "Magyar", voice: "hu-HU" },
+  { code: "el", name: "Ελληνικά", voice: "el-GR" },
+  { code: "he", name: "עברית", voice: "he-IL" },
+  { code: "fa", name: "فارسی", voice: "fa-IR" },
+];
+
+const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #050810; min-height: 100vh; font-family: 'Syne', sans-serif; }
+  .app { min-height: 100vh; background: #050810; color: #e8eaf6; padding-bottom: 60px; }
+  .header { text-align: center; padding: 48px 24px 32px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .logo-row { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px; }
+  .logo-icon { width: 44px; height: 44px; background: linear-gradient(135deg, #4f46e5, #06b6d4); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  .app-title { font-size: 2rem; font-weight: 800; background: linear-gradient(90deg, #818cf8, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .app-subtitle { font-size: 0.85rem; color: #64748b; letter-spacing: 2px; text-transform: uppercase; }
+  .mode-toggle { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+  .mode-btn { padding: 8px 20px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: #64748b; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+  .mode-btn.active { background: linear-gradient(135deg, #4f46e5, #06b6d4); color: white; border-color: transparent; }
+  .main { max-width: 860px; margin: 0 auto; padding: 32px 20px 0; }
+  .api-box { background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.2); border-radius: 16px; padding: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .api-box label { font-size: 0.75rem; color: #f59e0b; letter-spacing: 1px; }
+  .api-box input { flex: 1; min-width: 200px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #e2e8f0; font-size: 0.85rem; padding: 8px 12px; outline: none; }
+  .lang-row { display: flex; align-items: flex-end; gap: 12px; margin-bottom: 24px; }
+  .lang-wrap { flex: 1; }
+  .lang-wrap label { display: block; font-size: 0.7rem; color: #475569; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 6px; }
+  select { width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #e2e8f0; font-size: 0.95rem; padding: 12px 16px; cursor: pointer; appearance: none; }
+  .swap-btn { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #818cf8; cursor: pointer; font-size: 18px; flex-shrink: 0; }
+  .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  @media(max-width:600px){ .panels { grid-template-columns: 1fr; } .lang-row { flex-wrap: wrap; } }
+  .panel { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; padding: 20px; min-height: 180px; display: flex; flex-direction: column; }
+  .panel.active { border-color: rgba(79,70,229,0.4); }
+  .panel.rec { border-color: #ef4444; }
+  .ph { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .ph span { font-size: 0.7rem; color: #475569; letter-spacing: 1.5px; text-transform: uppercase; }
+  .ph div { display: flex; gap: 6px; }
+  .ib { width: 30px; height: 30px; border-radius: 8px; border: none; background: rgba(255,255,255,0.05); color: #64748b; cursor: pointer; font-size: 14px; }
+  textarea { width: 100%; min-height: 100px; background: transparent; border: none; color: #e2e8f0; font-size: 1rem; line-height: 1.6; resize: none; outline: none; font-family: 'Syne', sans-serif; }
+  .out-text { flex: 1; font-size: 1rem; line-height: 1.6; color: #e2e8f0; min-height: 100px; }
+  .out-text.empty { color: #334155; font-style: italic; }
+  .cc { text-align: right; font-size: 0.7rem; color: #334155; margin-top: 8px; }
+  .controls { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .mic { width: 80px; height: 80px; border-radius: 50%; border: none; background: linear-gradient(135deg,#4f46e5,#7c3aed); color: white; font-size: 30px; cursor: pointer; }
+  .mic.rec { background: linear-gradient(135deg,#ef4444,#dc2626); animation: pr 1.2s infinite; }
+  @keyframes pr { 0%{box-shadow:0 0 0 0 rgba(239,68,68,0.5)} 70%{box-shadow:0 0 0 20px rgba(239,68,68,0)} 100%{box-shadow:0 0 0 0 rgba(239,68,68,0)} }
+  .trbtn { padding: 16px 32px; border-radius: 999px; border: none; background: linear-gradient(135deg,#06b6d4,#0891b2); color: white; font-size: 0.95rem; font-weight: 700; cursor: pointer; }
+  .trbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .statusbar { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: 999px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); margin-bottom: 24px; font-size: 0.8rem; color: #475569; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #334155; }
+  .dot.ok { background: #22c55e; }
+  .dot.err { background: #ef4444; }
+  .dot.ld { background: #f59e0b; animation: bk 0.5s infinite; }
+  @keyframes bk { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .history { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 20px; }
+  .ht { display: flex; justify-content: space-between; align-items: center; font-size: 0.7rem; color: #475569; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 16px; }
+  .clr { background: none; border: none; color: #475569; cursor: pointer; font-size: 0.75rem; }
+  .hi { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04); display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; }
+  .hi:last-child { border-bottom: none; }
+  .ho { font-size: 0.9rem; color: #94a3b8; }
+  .htr { font-size: 0.9rem; color: #e2e8f0; text-align: right; }
+  .harr { color: #4f46e5; text-align: center; }
+  .hm { grid-column: 1/-1; font-size: 0.7rem; color: #334155; }
+`;
+
+function VoiceTranslator() {
+  const [mode, setMode] = useState("free");
+  const [src, setSrc] = useState("en");
+  const [tgt, setTgt] = useState("es");
+  const [input, setInput] = useState("");
+  const [output, setOutput] = useState("");
+  const [recording, setRecording] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("Ready");
+  const [statusType, setStatusType] = useState("");
+  const [history, setHistory] = useState([]);
+  const [apiKey, setApiKey] = useState("");
+  const recRef = useRef(null);
+
+  const setMsg = (m, t = "") => { setStatus(m); setStatusType(t); };
+
+  const translateFree = async (text, s, t) => {
+    const r = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${s}|${t}`);
+    const d = await r.json();
+    if (d.responseStatus === 200) return d.responseData.translatedText;
+    throw new Error("Translation failed");
+  };
+
+  const translateAI = async (text, s, t) => {
+    const sn = LANGUAGES.find(l => l.code === s)?.name || s;
+    const tn = LANGUAGES.find(l => l.code === t)?.name || t;
+    const r = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 1000, messages: [{ role: "user", content: `Translate from ${sn} to ${tn}. Return ONLY the translated text.\n\n${text}` }] })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.message);
+    return d.content?.[0]?.text?.trim() || "";
+  };
+
+  const doTranslate = async () => {
+    if (!input.trim()) return;
+    setLoading(true); setMsg("Translating...", "ld"); setOutput("");
+    try {
+      const result = mode === "free" ? await translateFree(input, src, tgt) : await translateAI(input, src, tgt);
+      setOutput(result);
+      setMsg("Done ✓", "ok");
+      const sn = LANGUAGES.find(l => l.code === src)?.name;
+      const tn = LANGUAGES.find(l => l.code === tgt)?.name;
+      setHistory(h => [{ original: input, translated: result, srcLang: sn, tgtLang: tn, time: new Date().toLocaleTimeString() }, ...h.slice(0, 9)]);
+      setTimeout(() => setMsg("Ready"), 3000);
+    } catch (e) { setMsg("Error: " + e.message, "err"); }
+    setLoading(false);
+  };
+
+  const startRec = () => {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { setMsg("Not supported in this browser", "err"); return; }
+    const r = new SR();
+    r.lang = LANGUAGES.find(l => l.code === src)?.voice || "en-US";
+    r.continuous = false; r.interimResults = true;
+    r.onstart = () => { setRecording(true); setMsg("Listening...", "ok"); };
+    r.onresult = e => setInput(Array.from(e.results).map(x => x[0].transcript).join(""));
+    r.onend = () => { setRecording(false); setMsg("Ready"); };
+    r.onerror = e => { setRecording(false); setMsg("Mic error: " + e.error, "err"); };
+    recRef.current = r; r.start();
+  };
+
+  const stopRec = () => { recRef.current?.stop(); setRecording(false); };
+  const speak = (text, code) => { const u = new SpeechSynthesisUtterance(text); u.lang = LANGUAGES.find(l => l.code === code)?.voice || code; window.speechSynthesis.speak(u); };
+  const swap = () => { setSrc(tgt); setTgt(src); setInput(output); setOutput(input); };
+  const copy = text => navigator.clipboard.writeText(text).then(() => { setMsg("Copied ✓", "ok"); setTimeout(() => setMsg("Ready"), 2000); });
+
+  return React.createElement(React.Fragment, null,
+    React.createElement("style", null, css),
+    React.createElement("div", { className: "app" },
+      React.createElement("header", { className: "header" },
+        React.createElement("div", { className: "logo-row" },
+          React.createElement("div", { className: "logo-icon" }, "🌐"),
+          React.createElement("h1", { className: "app-title" }, "VoiceLingua")
+        ),
+        React.createElement("p", { className: "app-subtitle" }, "Voice Translator · 30 Languages"),
+        React.createElement("div", { className: "mode-toggle" },
+          React.createElement("button", { className: `mode-btn ${mode === "free" ? "active" : ""}`, onClick: () => setMode("free") }, "🆓 Free"),
+          React.createElement("button", { className: `mode-btn ${mode === "ai" ? "active" : ""}`, onClick: () => setMode("ai") }, "✨ AI Mode")
+        )
+      ),
+      React.createElement("main", { className: "main" },
+        mode === "ai" && React.createElement("div", { className: "api-box" },
+          React.createElement("label", null, "ANTHROPIC API KEY"),
+          React.createElement("input", { type: "password", placeholder: "sk-ant-...", value: apiKey, onChange: e => setApiKey(e.target.value) })
+        ),
+        React.createElement("div", { className: "lang-row" },
+          React.createElement("div", { className: "lang-wrap" },
+            React.createElement("label", null, "From"),
+            React.createElement("select", { value: src, onChange: e => setSrc(e.target.value) }, LANGUAGES.map(l => React.createElement("option", { key: l.code, value: l.code }, l.name)))
+          ),
+          React.createElement("button", { className: "swap-btn", onClick: swap }, "⇄"),
+          React.createElement("div", { className: "lang-wrap" },
+            React.createElement("label", null, "To"),
+            React.createElement("select", { value: tgt, onChange: e => setTgt(e.target.value) }, LANGUAGES.map(l => React.createElement("option", { key: l.code, value: l.code }, l.name)))
+          )
+        ),
+        React.createElement("div", { className: "panels" },
+          React.createElement("div", { className: `panel ${recording ? "rec" : ""} ${input ? "active" : ""}` },
+            React.createElement("div", { className: "ph" },
+              React.createElement("span", null, "Input"),
+              React.createElement("div", null,
+                input && React.createElement("button", { className: "ib", onClick: () => copy(input) }, "📋"),
+                input && React.createElement("button", { className: "ib", onClick: () => speak(input, src) }, "🔊"),
+                input && React.createElement("button", { className: "ib", onClick: () => setInput("") }, "✕")
+              )
+            ),
+            React.createElement("textarea", { placeholder: "Type or speak...", value: input, onChange: e => setInput(e.target.value) }),
+            React.createElement("div", { className: "cc" }, input.length + " chars")
+          ),
+          React.createElement("div", { className: `panel ${output ? "active" : ""}` },
+            React.createElement("div", { className: "ph" },
+              React.createElement("span", null, "Translation"),
+              React.createElement("div", null,
+                output && React.createElement("button", { className: "ib", onClick: () => copy(output) }, "📋"),
+                output && React.createElement("button", { className: "ib", onClick: () => speak(output, tgt) }, "🔊")
+              )
+            ),
+            React.createElement("div", { className: `out-text ${!output ? "empty" : ""}` }, loading ? "Translating..." : (output || "Translation appears here")),
+            output && React.createElement("div", { className: "cc" }, output.length + " chars")
+          )
+        ),
+        React.createElement("div", { className: "controls" },
+          React.createElement("button", { className: `mic ${recording ? "rec" : ""}`, onClick: recording ? stopRec : startRec }, recording ? "⏹" : "🎤"),
+          React.createElement("button", { className: "trbtn", onClick: doTranslate, disabled: !input.trim() || loading }, loading ? "Translating…" : "⚡ Translate")
+        ),
+        React.createElement("div", { className: "statusbar" },
+          React.createElement("div", { className: `dot ${statusType}` }),
+          React.createElement("span", null, status)
+        ),
+        history.length > 0 && React.createElement("div", { className: "history" },
+          React.createElement("div", { className: "ht" },
+            "History",
+            React.createElement("button", { className: "clr", onClick: () => setHistory([]) }, "Clear")
+          ),
+          history.map((item, i) => React.createElement("div", { key: i, className: "hi" },
+            React.createElement("div", { className: "ho" }, item.original),
+            React.createElement("div", { className: "harr" }, "→"),
+            React.createElement("div", { className: "htr" }, item.translated),
+            React.createElement("div", { className: "hm" }, `${item.srcLang} → ${item.tgtLang} · ${item.time}`)
+          ))
+        )
+      )
+    )
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(VoiceTranslator));
